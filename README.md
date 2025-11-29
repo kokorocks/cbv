@@ -23,3 +23,6 @@ gen z version converts verses into the genz counterpart, without dumb words like
 oev Bible
 
 old english version converts it to how shakespeare would say back in his day
+
+> [!WARNING]
+> Not for serious or professional use.
