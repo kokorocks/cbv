@@ -1,13 +1,5 @@
 endpoint='https://raw.githubusercontent.com/nolan-rodriguez/the-bible-kjv/refs/heads/main/kjv.min.json'
 
-[gtv]
-
-
-
-[gzv]
-
-
-
 [oev]
 chaos=0.5
 replace_chance=0.8
