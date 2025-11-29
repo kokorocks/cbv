@@ -1,0 +1,5 @@
+bs4
+googletrans
+httpx
+free-proxy
+simplemma
