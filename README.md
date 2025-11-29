@@ -10,10 +10,16 @@ cbv stands for 'custom bible version,' we have 3 now
 
 gtv Bible
 
+just added support for the google translated version
+
 <hr>
 
 gzv Bible
 
+gen z version converts verses into the genz counterpart, without dumb words like 'skibidi'
+
 <hr>
 
 oev Bible
+
+old english version converts it to how shakespeare would say back in his day
