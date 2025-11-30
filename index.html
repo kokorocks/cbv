@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bible Viewer</title>
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0.5em;
+    background: black;
+    color: white;
+    font-family: Arial, sans-serif;
+    min-height: 100%;
+    height: auto;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+.container {
+  width: 80%;
+  min-height: 100%;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+  .controls {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+  }
+
+  select {
+    height: 30px;
+    border-radius: 5px;
+    padding: 5px;
+    min-width: 150px;
+  }
+
+  .main {
+    background: darkgrey;
+    border-radius: 20px;
+    flex-grow: 1;
+    width: 100%;
+    padding: 20px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .chapter-text {
+    font-size: 16px;
+    line-height: 1.8;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .verse-number {
+    font-weight: bold;
+    color: #ffcc00;
+    margin-right: 5px;
+  }
+
+  .verse {
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body><br>
+  <div class="container">
+    <div class="controls">
+      <label>Version:
+        <select id="version"></select>
+      </label>
+      <label>Testament:
+        <select id="testament"></select>
+      </label>
+      <label>Book:
+        <select id="book"></select>
+      </label>
+      <label>Chapter:
+        <select id="chapter"></select>
+      </label>
+    </div>
+    <div class="main" id="main">
+      <div class="chapter-text">Select options to view chapter</div>
+    </div>
+  </div><br>
+
+  <script>
+    const state = {
+      data: null,
+      dataFormat: null,
+      selectedVersion: 'oev',
+      selectedTestament: 'old',
+      selectedBook: '',
+      selectedChapter: '1',
+      gtvBookData: null
+    };
+
+    const urls = {
+      'oev': "https://kokorocks.github.io/cbv/oev/oev.min.json",
+      'gzv': "https://kokorocks.github.io/cbv/gzv/gzv.min.json",
+      'kjv': "https://kokorocks.github.io/cbv/kjv/kjv.min.json"
+    };
+
+    const gtvTestamentPaths = {
+      'old': 'ots',
+      'new': 'nts'
+    };
+
+    function addOptions(selectId, options) {
+      const select = document.getElementById(selectId);
+      select.innerHTML = "";
+      options.forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.text;
+        select.appendChild(option);
+      });
+    }
+
+    function detectDataFormat(data) {
+      if (data.verses) return 'verses';
+      if (data.books && Object.values(data.books).some(book => typeof book === 'object')) {
+        return 'chapters';
+      }
+      return null;
+    }
+
+    function bookNameToGtvPath(bookName) {
+      return bookName.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
+    }
+
+    function getBookData(bookName) {
+      if (!state.data) return null;
+      return state.data.books[bookName];
+    }
+
+    function calculateChapters(data) {
+      if (!data) return 0;
+      return Object.keys(data).filter(key => !isNaN(key)).length;
+    }
+
+    function getChapterVerses(bookName, chapterNum) {
+      if (!state.data) return null;
+      
+      if (state.dataFormat === 'verses') {
+        const chapterKey = `${bookName}-${chapterNum}`;
+        const chapterData = state.data.chapters[chapterKey];
+        if (chapterData && chapterData.verses) {
+          const verses = [];
+          for (let i = 1; i <= chapterData.verses; i++) {
+            const verseKey = `${bookName}-${chapterNum}-${i}`;
+            if (state.data.verses[verseKey]) {
+              verses.push({ verse: i, text: state.data.verses[verseKey].text });
+            }
+          }
+          return verses;
+        }
+      } else if (state.dataFormat === 'chapters') {
+        const chapterData = state.data.books[bookName][chapterNum];
+        if (chapterData && typeof chapterData === 'object') {
+          return Object.entries(chapterData)
+            .filter(([key]) => !isNaN(key))
+            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+            .map(([verseNum, text]) => ({ verse: verseNum, text }));
+        }
+      } else if (state.dataFormat === 'gtv') {
+        const chapterData = state.gtvBookData[chapterNum];
+        if (chapterData && typeof chapterData === 'object') {
+          return Object.entries(chapterData)
+            .filter(([key]) => !isNaN(key))
+            .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+            .map(([verseNum, text]) => ({ verse: verseNum, text }));
+        }
+      }
+      return null;
+    }
+
+function updateDisplay() {
+  const { selectedBook, selectedChapter } = state;
+
+  // INITIAL LOAD CASE
+  if (!state.data && state.dataFormat !== 'gtv') {
+    addOptions('testament', [
+      {"value": "old", "text": "Old Testament"},
+      {"value": "new", "text": "New Testament"}
+    ]);
+    document.querySelector('.chapter-text').innerHTML = "<p>Select options to view chapter</p>";
+    return;
+  }
+
+  // DO NOT modify testament dropdown here anymore
+
+  const verses = getChapterVerses(selectedBook, selectedChapter);
+
+  if (verses && verses.length > 0) {
+    const chapterHtml = verses.map(v =>
+      `<div class="verse"><span class="verse-number">${v.verse}:</span>${v.text}</div>`
+    ).join('');
+    document.querySelector('.chapter-text').innerHTML =
+      `<h2>${selectedBook.toUpperCase()} ${selectedChapter}</h2>${chapterHtml}`;
+  } else {
+    document.querySelector('.chapter-text').innerHTML = "<p>No verses found</p>";
+  }
+}
+
+
+    async function loadGtvBook(bookName) {
+      try {
+        const testamentPath = gtvTestamentPaths[state.selectedTestament];
+        const bookPath = bookNameToGtvPath(bookName);
+        const url = `https://kokorocks.github.io/cbv/gtv/json/${testamentPath}/${bookPath}/${bookPath}_translated.json`;
+        alert(url);
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
+        state.gtvBookData = await res.json();
+        state.dataFormat = 'gtv';
+        updateChapters();
+      } catch (err) {
+        console.error("Error loading GTV book:", err);
+        document.querySelector('.chapter-text').innerHTML = `<p>Error loading book: ${err.message}</p>`;
+      }
+    }
+
+    function updateChapters() {
+      const { selectedBook } = state;
+      if (!selectedBook) return;
+
+      let chapters = 0;
+
+      if (state.selectedVersion === 'gtv') {
+        chapters = calculateChapters(state.gtvBookData);
+      } else {
+        const bookData = getBookData(selectedBook);
+        if (!bookData) return;
+
+        if (state.dataFormat === 'verses' && bookData.chapters) {
+          chapters = bookData.chapters;
+        } else if (state.dataFormat === 'chapters') {
+          chapters = calculateChapters(bookData);
+        }
+      }
+
+      if (chapters > 0) {
+        const chapterOptions = Array.from({ length: chapters }, (_, i) => ({
+          value: (i + 1).toString(),
+          text: (i + 1).toString()
+        }));
+        addOptions("chapter", chapterOptions);
+        state.selectedChapter = "1";
+        updateDisplay();
+      }
+    }
+
+    function updateBooks() {
+      if (state.selectedVersion === 'gtv') {
+        const books = {
+          'new': ['matthew', 'mark', 'luke', 'john', 'acts', 'romans', '1corinthians', '2corinthians', 'galatians', 'ephesians', 'philippians', 'colossians', '1thessalonians', '2thessalonians', '1timothy', '2timothy', 'titus', 'philemon', 'hebrews', 'james', '1peter', '2peter', '1john', '2john', '3john', 'jude', 'revelation']
+        };
+        
+        state.selectedTestament = 'new';
+        const bookList = books['new'];
+        const bookOptions = bookList.map(book => ({
+          value: book,
+          text: book.charAt(0).toUpperCase() + book.slice(1).replace(/([A-Z])/g, ' $1')
+        }));
+        addOptions("book", bookOptions);
+        
+        // Disable Old Testament for GTV
+        const testamentSelect = document.getElementById('testament');
+        testamentSelect.innerHTML = '';
+        const newOption = document.createElement("option");
+        newOption.value = 'new';
+        newOption.textContent = 'New Testament';
+        testamentSelect.appendChild(newOption);
+        
+        const oldOption = document.createElement("option");
+        oldOption.value = 'old';
+        oldOption.textContent = 'Old Testament (Unsupported)';
+        oldOption.disabled = true;
+        testamentSelect.appendChild(oldOption);
+        
+        state.selectedBook = bookList[0];
+        loadGtvBook(bookList[0]);
+      } else {
+        // Enable both testaments for other versions
+        const testamentSelect = document.getElementById('testament');
+        testamentSelect.innerHTML = '';
+        
+        const oldOption = document.createElement("option");
+        oldOption.value = 'old';
+        oldOption.textContent = 'Old Testament';
+        testamentSelect.appendChild(oldOption);
+        
+        const newOption = document.createElement("option");
+        newOption.value = 'new';
+        newOption.textContent = 'New Testament';
+        testamentSelect.appendChild(newOption);
+        
+        testamentSelect.value = state.selectedTestament;
+        
+        if (!state.data || !state.data.testaments) return;
+        
+        const testament = state.data.testaments[state.selectedTestament];
+        if (testament && testament.bookList) {
+          const bookOptions = testament.bookList.map(book => ({
+            value: book,
+            text: book.charAt(0).toUpperCase() + book.slice(1)
+          }));
+          addOptions("book", bookOptions);
+          state.selectedBook = testament.bookList[0];
+          updateChapters();
+        }
+      }
+    }
+
+    async function loadBibleData() {
+      try {
+        if (state.selectedVersion === 'gtv') {
+          state.data = { testaments: true };
+          updateBooks();
+        } else {
+          const url = urls[state.selectedVersion];
+          const res = await fetch(url);
+          state.data = await res.json();
+          state.dataFormat = detectDataFormat(state.data);
+          console.log("Data format detected:", state.dataFormat);
+          updateBooks();
+        }
+      } catch (err) {
+        console.error("Error loading Bible data:", err);
+        document.querySelector('.chapter-text').innerHTML = `<p>Error loading Bible data</p>`;
+      }
+    }
+
+    document.getElementById('version').addEventListener('change', (e) => {
+      state.selectedVersion = e.target.value;
+      loadBibleData();
+    });
+
+    document.getElementById('testament').addEventListener('change', (e) => {
+      state.selectedTestament = e.target.value;
+      updateBooks();
+    });
+
+    document.getElementById('book').addEventListener('change', (e) => {
+      state.selectedBook = e.target.value;
+      if (state.selectedVersion === 'gtv') {
+        loadGtvBook(e.target.value);
+      } else {
+        updateChapters();
+      }
+    });
+
+    document.getElementById('chapter').addEventListener('change', (e) => {
+      state.selectedChapter = e.target.value;
+      updateDisplay();
+    });
+
+    addOptions("version", [
+      {value: "oev", text: "OEV"},
+      {value: "gzv", text: "GZV"},
+      {value: "kjv", text: "KJV"},
+      {value: "gtv", text: "GTV"}
+    ]);
+
+    addOptions("testament", [
+      {value: "old", text: "Old Testament"},
+      {value: "new", text: "New Testament"}
+    ]);
+
+    loadBibleData();
+  </script>
+</body>
+</html>
