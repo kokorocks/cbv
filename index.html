@@ -224,7 +224,7 @@ function updateDisplay() {
         const testamentPath = gtvTestamentPaths[state.selectedTestament];
         const bookPath = bookNameToGtvPath(bookName);
         const url = `https://kokorocks.github.io/cbv/gtv/json/${testamentPath}/${bookPath}/${bookPath}_translated.json`;
-        alert(url);
+        (url);
         
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
