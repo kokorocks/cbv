@@ -62,4 +62,4 @@ For God so lovedest thee world, thatth he gaveth his onlyest begotteneth Son, th
 ```
 
 > [!WARNING]
-> Not for serious or professional use.
+> Not for serious or professional use, nor is this a mockery of the Bible.
