@@ -37,6 +37,10 @@ Matthew 1:1
 
 Bible of the birth of Jesus Christ son of David son of Abraham.
 ```
+
+> [! NOTE]
+> possible bad language and heresy.
+
 <hr>
 
 gzv Bible
@@ -62,4 +66,4 @@ For God so lovedest thee world, thatth he gaveth his onlyest begotteneth Son, th
 ```
 
 > [!WARNING]
-> Not for serious or professional use, nor is this a mockery of the Bible.
+> Not for serious or professional use, nor is this meant to be a mockery of the Bible.
