@@ -38,7 +38,7 @@ Matthew 1:1
 Bible of the birth of Jesus Christ son of David son of Abraham.
 ```
 
-> [! NOTE]
+> [!WARNING]
 > possible bad language and heresy.
 
 <hr>
